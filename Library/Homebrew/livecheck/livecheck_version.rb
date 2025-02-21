@@ -4,11 +4,7 @@
 module Homebrew
   module Livecheck
     # A formula or cask version, split into its component sub-versions.
-    #
-    # @api private
     class LivecheckVersion
-      extend T::Sig
-
       include Comparable
 
       sig {
@@ -19,7 +15,7 @@ module Homebrew
         when Formula, Resource
           [version]
         when Cask::Cask
-          version.to_s.split(/[,:]/).map { |s| Version.new(s) }
+          version.to_s.split(",").map { |s| Version.new(s) }
         else
           T.absurd(package_or_resource)
         end

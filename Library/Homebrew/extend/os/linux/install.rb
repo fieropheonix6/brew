@@ -1,12 +1,10 @@
-# typed: true
+# typed: true # rubocop:todo Sorbet/StrictSigil
 # frozen_string_literal: true
 
 module Homebrew
   module Install
-    module_function
-
     # This is a list of known paths to the host dynamic linker on Linux if
-    # the host glibc is new enough.  The symlink_ld_so method will fail if
+    # the host glibc is new enough. The symlink_ld_so method will fail if
     # the host linker cannot be found in this list.
     DYNAMIC_LINKERS = %w[
       /lib64/ld-linux-x86-64.so.2
@@ -20,8 +18,8 @@ module Homebrew
     ].freeze
     private_constant :DYNAMIC_LINKERS
 
-    # We link GCC runtime libraries that are not specificaly used for Fortran,
-    # which are linked by the GCC formula.  We only use the versioned shared libraries
+    # We link GCC runtime libraries that are not specifically used for Fortran,
+    # which are linked by the GCC formula. We only use the versioned shared libraries
     # as the other shared and static libraries are only used at build time where
     # GCC can find its own libraries.
     GCC_RUNTIME_LIBS = %w[
@@ -32,19 +30,20 @@ module Homebrew
     ].freeze
     private_constant :GCC_RUNTIME_LIBS
 
-    def perform_preinstall_checks(all_fatal: false, cc: nil)
-      generic_perform_preinstall_checks(all_fatal: all_fatal, cc: cc)
+    def self.perform_preinstall_checks(all_fatal: false)
+      generic_perform_preinstall_checks(all_fatal:)
       symlink_ld_so
       setup_preferred_gcc_libs
     end
+    private_class_method :perform_preinstall_checks
 
-    def global_post_install
+    def self.global_post_install
       generic_global_post_install
       symlink_ld_so
       setup_preferred_gcc_libs
     end
 
-    def check_cpu
+    def self.check_cpu
       return if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
       return if Hardware::CPU.arm?
 
@@ -59,7 +58,7 @@ module Homebrew
     end
     private_class_method :check_cpu
 
-    def symlink_ld_so
+    def self.symlink_ld_so
       brew_ld_so = HOMEBREW_PREFIX/"lib/ld.so"
 
       ld_so = HOMEBREW_PREFIX/"opt/glibc/bin/ld.so"
@@ -79,7 +78,7 @@ module Homebrew
     end
     private_class_method :symlink_ld_so
 
-    def setup_preferred_gcc_libs
+    def self.setup_preferred_gcc_libs
       gcc_opt_prefix = HOMEBREW_PREFIX/"opt/#{OS::LINUX_PREFERRED_GCC_RUNTIME_FORMULA}"
       glibc_installed = (HOMEBREW_PREFIX/"opt/glibc/bin/ld.so").readable?
 

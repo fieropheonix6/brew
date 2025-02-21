@@ -1,20 +1,20 @@
-# typed: false
 # frozen_string_literal: true
 
+require "cmd/home"
 require "cmd/shared_examples/args_parse"
 
-describe "brew home" do
-  let(:testballhome_homepage) {
+RSpec.describe Homebrew::Cmd::Home do
+  let(:testballhome_homepage) do
     Formula["testballhome"].homepage
-  }
+  end
 
-  let(:local_caffeine_path) {
+  let(:local_caffeine_path) do
     cask_path("local-caffeine")
-  }
+  end
 
-  let(:local_caffeine_homepage) {
+  let(:local_caffeine_homepage) do
     Cask::CaskLoader.load(local_caffeine_path).homepage
-  }
+  end
 
   it_behaves_like "parseable arguments"
 

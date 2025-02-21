@@ -1,5 +1,7 @@
-# typed: false
+# typed: true # rubocop:todo Sorbet/StrictSigil
 # frozen_string_literal: true
+
+require "attrable"
 
 module Cask
   class DSL
@@ -12,15 +14,13 @@ module Cask
     # The return value of the last method in the block is also sent
     # to the output by the caller, but that feature is only for the
     # convenience of cask authors.
-    #
-    # @api private
     class Caveats < Base
-      extend Predicable
+      extend Attrable
 
       attr_predicate :discontinued?
 
       def initialize(*args)
-        super(*args)
+        super
         @built_in_caveats = {}
         @custom_caveats = []
         @discontinued = false
@@ -37,6 +37,7 @@ module Cask
 
       private_class_method :caveat
 
+      sig { returns(String) }
       def to_s
         (@custom_caveats + @built_in_caveats.values).join("\n")
       end
@@ -58,10 +59,16 @@ module Cask
       caveat :kext do
         next if MacOS.version < :high_sierra
 
+        navigation_path = if MacOS.version >= :ventura
+          "System Settings → Privacy & Security"
+        else
+          "System Preferences → Security & Privacy → General"
+        end
+
         <<~EOS
           #{@cask} requires a kernel extension to work.
           If the installation fails, retry after you enable it in:
-            System Preferences → Security & Privacy → General
+            #{navigation_path}
 
           For more information, refer to vendor documentation or this Apple Technical Note:
             #{Formatter.url("https://developer.apple.com/library/content/technotes/tn2459/_index.html")}
@@ -71,10 +78,10 @@ module Cask
       caveat :unsigned_accessibility do |access = "Accessibility"|
         # access: the category in the privacy settings the app requires.
 
-        navigation_path = if MacOS.version < :ventura
-          "System Preferences → Security & Privacy → Privacy"
-        else
+        navigation_path = if MacOS.version >= :ventura
           "System Settings → Privacy & Security"
+        else
+          "System Preferences → Security & Privacy → Privacy"
         end
 
         <<~EOS
@@ -128,13 +135,13 @@ module Cask
         else
           <<~EOS
             #{@cask} requires Java #{java_version}. You can install it with:
-              brew install --cask homebrew/cask-versions/temurin#{java_version}
+              brew install --cask temurin@#{java_version}
           EOS
         end
       end
 
       caveat :requires_rosetta do
-        next unless Hardware::CPU.arm?
+        next if Homebrew::SimulateSystem.current_arch != :arm
 
         <<~EOS
           #{@cask} is built for Intel macOS and so requires Rosetta 2 to be installed.
@@ -157,6 +164,7 @@ module Cask
       end
 
       caveat :discontinued do
+        odisabled "`caveats :discontinued`", "`deprecate!`"
         @discontinued = true
         <<~EOS
           #{@cask} has been officially discontinued upstream.

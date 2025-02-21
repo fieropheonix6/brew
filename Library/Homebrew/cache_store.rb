@@ -1,4 +1,4 @@
-# typed: true
+# typed: true # rubocop:todo Sorbet/StrictSigil
 # frozen_string_literal: true
 
 require "json"
@@ -66,6 +66,14 @@ class CacheStoreDatabase
 
     dirty!
     db.delete(key)
+  end
+
+  # Deletes all content from the underlying database (if it already exists).
+  def clear!
+    return unless created?
+
+    dirty!
+    db.clear
   end
 
   # Closes the underlying database (if it is created and open).

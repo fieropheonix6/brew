@@ -1,9 +1,8 @@
-# typed: false
 # frozen_string_literal: true
 
 require "descriptions"
 
-describe Descriptions do
+RSpec.describe Descriptions do
   subject(:descriptions) { described_class.new(descriptions_hash) }
 
   let(:descriptions_hash) { {} }

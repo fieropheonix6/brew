@@ -1,9 +1,8 @@
-# typed: false
 # frozen_string_literal: true
 
 require "rubocops/lines"
 
-describe RuboCop::Cop::FormulaAudit do
+RSpec.describe RuboCop::Cop::FormulaAudit do
   describe RuboCop::Cop::FormulaAudit::GenerateCompletionsDSL do
     subject(:cop) { described_class.new }
 
@@ -14,7 +13,7 @@ describe RuboCop::Cop::FormulaAudit do
 
           def install
             (bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "bash")
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `generate_completions_from_executable(bin/"foo", "completions", shells: [:bash])` instead of `(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "bash")`.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FormulaAudit/GenerateCompletionsDSL: Use `generate_completions_from_executable(bin/"foo", "completions", shells: [:bash])` instead of `(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "bash")`.
           end
         end
       RUBY
@@ -37,7 +36,7 @@ describe RuboCop::Cop::FormulaAudit do
 
           def install
             (bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "bash")
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `generate_completions_from_executable(bin/"foo", "completions", base_name: "foo", shells: [:bash])` instead of `(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "bash")`.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FormulaAudit/GenerateCompletionsDSL: Use `generate_completions_from_executable(bin/"foo", "completions", base_name: "foo", shells: [:bash])` instead of `(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "bash")`.
           end
         end
       RUBY
@@ -60,7 +59,7 @@ describe RuboCop::Cop::FormulaAudit do
 
           def install
             (bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "--shell=bash")
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `generate_completions_from_executable(bin/"foo", "completions", shells: [:bash], shell_parameter_format: :arg)` instead of `(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "--shell=bash")`.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FormulaAudit/GenerateCompletionsDSL: Use `generate_completions_from_executable(bin/"foo", "completions", shells: [:bash], shell_parameter_format: :arg)` instead of `(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "--shell=bash")`.
           end
         end
       RUBY
@@ -83,7 +82,7 @@ describe RuboCop::Cop::FormulaAudit do
 
           def install
             (bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "--completion-script-bash")
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `generate_completions_from_executable(bin/"foo", "completions", shells: [:bash], shell_parameter_format: "--completion-script-")` instead of `(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "--completion-script-bash")`.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FormulaAudit/GenerateCompletionsDSL: Use `generate_completions_from_executable(bin/"foo", "completions", shells: [:bash], shell_parameter_format: "--completion-script-")` instead of `(bash_completion/"foo").write Utils.safe_popen_read(bin/"foo", "completions", "--completion-script-bash")`.
           end
         end
       RUBY
@@ -107,7 +106,7 @@ describe RuboCop::Cop::FormulaAudit do
           def install
             output = Utils.safe_popen_read(bin/"foo", "completions", "bash")
             (bash_completion/"foo").write output
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `generate_completions_from_executable` DSL instead of `(bash_completion/"foo").write output`.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FormulaAudit/GenerateCompletionsDSL: Use `generate_completions_from_executable` DSL instead of `(bash_completion/"foo").write output`.
           end
         end
       RUBY
@@ -124,11 +123,11 @@ describe RuboCop::Cop::FormulaAudit do
 
           def install
             generate_completions_from_executable(bin/"foo", "completions", shells: [:bash])
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use a single `generate_completions_from_executable` call combining all specified shells.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FormulaAudit/SingleGenerateCompletionsDSLCall: Use a single `generate_completions_from_executable` call combining all specified shells.
             generate_completions_from_executable(bin/"foo", "completions", shells: [:zsh])
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use a single `generate_completions_from_executable` call combining all specified shells.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FormulaAudit/SingleGenerateCompletionsDSLCall: Use a single `generate_completions_from_executable` call combining all specified shells.
             generate_completions_from_executable(bin/"foo", "completions", shells: [:fish])
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Use `generate_completions_from_executable(bin/"foo", "completions")` instead of `generate_completions_from_executable(bin/"foo", "completions", shells: [:fish])`.
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ FormulaAudit/SingleGenerateCompletionsDSLCall: Use `generate_completions_from_executable(bin/"foo", "completions")` instead of `generate_completions_from_executable(bin/"foo", "completions", shells: [:fish])`.
           end
         end
       RUBY

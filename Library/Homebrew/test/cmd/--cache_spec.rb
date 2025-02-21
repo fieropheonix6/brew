@@ -1,9 +1,9 @@
-# typed: false
 # frozen_string_literal: true
 
+require "cmd/--cache"
 require "cmd/shared_examples/args_parse"
 
-describe "brew --cache" do
+RSpec.describe Homebrew::Cmd::Cache do
   it_behaves_like "parseable arguments"
 
   it "prints all cache files for a given Formula", :integration_test do

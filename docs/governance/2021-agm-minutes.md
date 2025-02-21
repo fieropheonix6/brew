@@ -1,3 +1,7 @@
+---
+last_review_date: "1970-01-01"
+---
+
 # Homebrew Annual General Meeting 2021
 
 ## Minutes
@@ -12,8 +16,6 @@
   Greg Brimble moves to adopt the STV election method to elect the PLC and the Schulze method to elect the project leader. <https://github.com/Homebrew/brew/pull/10637>
 
   Motion carried unanimously.
-
-  <https://www.opavote.com/results/4758678377857024>
 - Shaun Jackman moves to suspend the rules requiring a three week waiting period and to adopt these election systems immediately.
   Motion carried unanimously.
 
@@ -29,9 +31,6 @@
 - 11:55–11:57 Election of the Project Leadership Committee
 
   Jonathan Chang and Issy Long are elected.
-
-  <https://www.opavote.com/results/5937355983683584>
-
 - 11:57–12:00 Election of the Project Leader
 
   Mike McQuaid elected by acclamation.
@@ -46,10 +45,10 @@
 - 12:40–12:45 Michka Popoff - Merging the cores <https://github.com/Homebrew/brew/issues/7028>
 - 12:45–12:50 Michka Popoff - Linux CI for homebrew-core <https://github.com/Homebrew/brew/issues/10597>
 - 12:50–13:55 Misty De Meo - Running Homebrew on Apple Silicon
-- 12:55–13:00 Shaun Jackman - Speeding up install times / Git repo size <https://github.com/Homebrew/install/issues/523>
+- 12:55–13:00 Shaun Jackman - Speeding up install times/Git repository size <https://github.com/Homebrew/install/issues/523>
 - 13:10 Meeting adjourned
 
-## Motions
+## Resolutions
 
 ### Motion to adopt the voting system
 
@@ -61,6 +60,6 @@ Voting by proxy is permitted, and proxy votes count towards the quorum for the e
 
 #### Project Leadership Committee (PLC)
 
-The Homebrew Project Leadership Committee will be chosen by holding a [Meek Single Transferable Vote (STV)](https://en.wikipedia.org/wiki/Counting_single_transferable_votes#Meek) election. The quota (threshold) of votes for a candidate to be elected will be calculated using the [Droop quota](https://en.wikipedia.org/wiki/Droop_quota).
+The Homebrew Project Leadership Committee will be chosen by holding a [Meek Single Transferable Vote (STV)](https://en.wikipedia.org/wiki/Counting_single_transferable_votes#Meek's_method) election. The quota (threshold) of votes for a candidate to be elected will be calculated using the [Droop quota](https://en.wikipedia.org/wiki/Droop_quota).
 
 Voting by proxy is permitted, and proxy votes count towards the quorum for the election.

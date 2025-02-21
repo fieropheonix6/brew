@@ -1,9 +1,9 @@
-# typed: false
 # frozen_string_literal: true
 
 require "cmd/shared_examples/args_parse"
+require "dev-cmd/livecheck"
 
-describe "brew livecheck" do
+RSpec.describe Homebrew::DevCmd::LivecheckCmd do
   it_behaves_like "parseable arguments"
 
   it "reports the latest version of a Formula", :integration_test, :needs_network do
@@ -21,7 +21,7 @@ describe "brew livecheck" do
   end
 
   it "gives an error when no arguments are given and there's no watchlist", :integration_test do
-    expect { brew "livecheck" }
+    expect { brew "livecheck", "HOMEBREW_LIVECHECK_WATCHLIST" => ".this_should_not_exist" }
       .to output(/Invalid usage: A watchlist file is required when no arguments are given\./).to_stderr
       .and not_to_output.to_stdout
       .and be_a_failure

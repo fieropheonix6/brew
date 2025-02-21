@@ -1,9 +1,8 @@
-# typed: false
 # frozen_string_literal: true
 
 require "livecheck/livecheck"
 
-describe Homebrew::Livecheck do
+RSpec.describe Homebrew::Livecheck do
   subject(:livecheck) { described_class }
 
   let(:cask_url) { "https://brew.sh/test-0.0.1.dmg" }
@@ -37,6 +36,15 @@ describe Homebrew::Livecheck do
     end
   end
 
+  let(:f_stable_url_only) do
+    stable_url_s = stable_url
+
+    formula("test_stable_url_only") do
+      desc "Test formula with only a stable URL"
+      url stable_url_s
+    end
+  end
+
   let(:r) { f.resources.first }
 
   let(:c) do
@@ -51,14 +59,25 @@ describe Homebrew::Livecheck do
 
         livecheck do
           url "https://formulae.brew.sh/api/formula/ruby.json"
-          regex(/"stable":"(\d+(?:\.\d+)+)"/i)
+          regex(/"stable":"(\d+(?:.\d+)+)"/i)
         end
       end
     RUBY
   end
 
+  let(:c_no_checkable_urls) do
+    Cask::CaskLoader.load(+<<-RUBY)
+      cask "test_no_checkable_urls" do
+        version "1.2.3"
+
+        name "Test"
+        desc "Test cask with no checkable URLs"
+      end
+    RUBY
+  end
+
   describe "::resolve_livecheck_reference" do
-    context "when a formula/cask has a livecheck block without formula/cask methods" do
+    context "when a formula/cask has a `livecheck` block without formula/cask methods" do
       it "returns [nil, []]" do
         expect(livecheck.resolve_livecheck_reference(f)).to eq([nil, []])
         expect(livecheck.resolve_livecheck_reference(c)).to eq([nil, []])
@@ -66,23 +85,21 @@ describe Homebrew::Livecheck do
     end
   end
 
-  describe "::formula_name" do
-    it "returns the name of the formula" do
-      expect(livecheck.formula_name(f)).to eq("test")
+  describe "::package_or_resource_name" do
+    it "returns the name of a formula" do
+      expect(livecheck.package_or_resource_name(f)).to eq("test")
     end
 
-    it "returns the full name" do
-      expect(livecheck.formula_name(f, full_name: true)).to eq("test")
-    end
-  end
-
-  describe "::cask_name" do
-    it "returns the token of the cask" do
-      expect(livecheck.cask_name(c)).to eq("test")
+    it "returns the full name of a formula" do
+      expect(livecheck.package_or_resource_name(f, full_name: true)).to eq("test")
     end
 
-    it "returns the full name of the cask" do
-      expect(livecheck.cask_name(c, full_name: true)).to eq("test")
+    it "returns the token of a cask" do
+      expect(livecheck.package_or_resource_name(c)).to eq("test")
+    end
+
+    it "returns the full name of a cask" do
+      expect(livecheck.package_or_resource_name(c, full_name: true)).to eq("test")
     end
   end
 
@@ -94,7 +111,7 @@ describe Homebrew::Livecheck do
           status:   "error",
           messages: ["Unable to get versions"],
           meta:     {
-            livecheckable: true,
+            livecheck_defined: true,
           },
         })
     end
@@ -106,7 +123,7 @@ describe Homebrew::Livecheck do
           status:   "error",
           messages: ["Unable to get versions"],
           meta:     {
-            livecheckable: true,
+            livecheck_defined: true,
           },
         })
     end
@@ -170,12 +187,35 @@ describe Homebrew::Livecheck do
     end
 
     it "returns nil when not given a string or valid symbol" do
-      expect(livecheck.livecheck_url_to_string(nil, f_livecheck_url)).to be_nil
-      expect(livecheck.livecheck_url_to_string(nil, c_livecheck_url)).to be_nil
-      expect(livecheck.livecheck_url_to_string(nil, r_livecheck_url)).to be_nil
-      expect(livecheck.livecheck_url_to_string(:invalid_symbol, f_livecheck_url)).to be_nil
-      expect(livecheck.livecheck_url_to_string(:invalid_symbol, c_livecheck_url)).to be_nil
-      expect(livecheck.livecheck_url_to_string(:invalid_symbol, r_livecheck_url)).to be_nil
+      error_text = "`url :%<symbol>s` does not reference a checkable URL"
+
+      # Invalid symbol in any context
+      expect { livecheck.livecheck_url_to_string(:invalid_symbol, f_livecheck_url) }
+        .to raise_error(ArgumentError, format(error_text, symbol: :invalid_symbol))
+      expect { livecheck.livecheck_url_to_string(:invalid_symbol, c_livecheck_url) }
+        .to raise_error(ArgumentError, format(error_text, symbol: :invalid_symbol))
+      expect { livecheck.livecheck_url_to_string(:invalid_symbol, r_livecheck_url) }
+        .to raise_error(ArgumentError, format(error_text, symbol: :invalid_symbol))
+
+      # Valid symbol in provided context but referenced URL is not present
+      expect { livecheck.livecheck_url_to_string(:head, f_stable_url_only) }
+        .to raise_error(ArgumentError, format(error_text, symbol: :head))
+      expect { livecheck.livecheck_url_to_string(:homepage, f_stable_url_only) }
+        .to raise_error(ArgumentError, format(error_text, symbol: :homepage))
+      expect { livecheck.livecheck_url_to_string(:homepage, c_no_checkable_urls) }
+        .to raise_error(ArgumentError, format(error_text, symbol: :homepage))
+      expect { livecheck.livecheck_url_to_string(:url, c_no_checkable_urls) }
+        .to raise_error(ArgumentError, format(error_text, symbol: :url))
+
+      # Valid symbol but not in the provided context
+      expect { livecheck.livecheck_url_to_string(:head, c_livecheck_url) }
+        .to raise_error(ArgumentError, format(error_text, symbol: :head))
+      expect { livecheck.livecheck_url_to_string(:homepage, r_livecheck_url) }
+        .to raise_error(ArgumentError, format(error_text, symbol: :homepage))
+      expect { livecheck.livecheck_url_to_string(:stable, c_livecheck_url) }
+        .to raise_error(ArgumentError, format(error_text, symbol: :stable))
+      expect { livecheck.livecheck_url_to_string(:url, f_livecheck_url) }
+        .to raise_error(ArgumentError, format(error_text, symbol: :url))
     end
   end
 
@@ -195,6 +235,8 @@ describe Homebrew::Livecheck do
       expect(livecheck.checkable_urls(c)).to eq([cask_url, homepage_url])
       expect(livecheck.checkable_urls(r)).to eq([resource_url])
       expect(livecheck.checkable_urls(f_duplicate_urls)).to eq([stable_url, head_url])
+      expect(livecheck.checkable_urls(f_stable_url_only)).to eq([stable_url])
+      expect(livecheck.checkable_urls(c_no_checkable_urls)).to eq([])
     end
   end
 
@@ -227,7 +269,7 @@ describe Homebrew::Livecheck do
 
           livecheck do
             url "https://formulae.brew.sh/api/formula/ruby.json"
-            regex(/"stable":"(\d+(?:\.\d+)+)"/i)
+            regex(/"stable":"(\d+(?:.\d+)+)"/i)
           end
         end
       RUBY
@@ -260,91 +302,6 @@ describe Homebrew::Livecheck do
 
     it "returns `false` if URL string does not contain a domain" do
       expect(livecheck.use_homebrew_curl?(f_homebrew_curl, "test")).to be(false)
-    end
-  end
-
-  describe "::preprocess_url" do
-    let(:github_git_url_with_extension) { "https://github.com/Homebrew/brew.git" }
-
-    it "returns the unmodified URL for an unparseable URL" do
-      # Modeled after the `head` URL in the `ncp` formula
-      expect(livecheck.preprocess_url(":something:cvs:@cvs.brew.sh:/cvs"))
-        .to eq(":something:cvs:@cvs.brew.sh:/cvs")
-    end
-
-    it "returns the unmodified URL for a GitHub URL ending in .git" do
-      expect(livecheck.preprocess_url(github_git_url_with_extension))
-        .to eq(github_git_url_with_extension)
-    end
-
-    it "returns the Git repository URL for a GitHub URL not ending in .git" do
-      expect(livecheck.preprocess_url("https://github.com/Homebrew/brew"))
-        .to eq(github_git_url_with_extension)
-    end
-
-    it "returns the unmodified URL for a GitHub /releases/latest URL" do
-      expect(livecheck.preprocess_url("https://github.com/Homebrew/brew/releases/latest"))
-        .to eq("https://github.com/Homebrew/brew/releases/latest")
-    end
-
-    it "returns the Git repository URL for a GitHub AWS URL" do
-      expect(livecheck.preprocess_url("https://github.s3.amazonaws.com/downloads/Homebrew/brew/1.0.0.tar.gz"))
-        .to eq(github_git_url_with_extension)
-    end
-
-    it "returns the Git repository URL for a github.com/downloads/... URL" do
-      expect(livecheck.preprocess_url("https://github.com/downloads/Homebrew/brew/1.0.0.tar.gz"))
-        .to eq(github_git_url_with_extension)
-    end
-
-    it "returns the Git repository URL for a GitHub tag archive URL" do
-      expect(livecheck.preprocess_url("https://github.com/Homebrew/brew/archive/1.0.0.tar.gz"))
-        .to eq(github_git_url_with_extension)
-    end
-
-    it "returns the Git repository URL for a GitHub release archive URL" do
-      expect(livecheck.preprocess_url("https://github.com/Homebrew/brew/releases/download/1.0.0/brew-1.0.0.tar.gz"))
-        .to eq(github_git_url_with_extension)
-    end
-
-    it "returns the Git repository URL for a gitlab.com archive URL" do
-      expect(livecheck.preprocess_url("https://gitlab.com/Homebrew/brew/-/archive/1.0.0/brew-1.0.0.tar.gz"))
-        .to eq("https://gitlab.com/Homebrew/brew.git")
-    end
-
-    it "returns the Git repository URL for a self-hosted GitLab archive URL" do
-      expect(livecheck.preprocess_url("https://brew.sh/Homebrew/brew/-/archive/1.0.0/brew-1.0.0.tar.gz"))
-        .to eq("https://brew.sh/Homebrew/brew.git")
-    end
-
-    it "returns the Git repository URL for a Codeberg archive URL" do
-      expect(livecheck.preprocess_url("https://codeberg.org/Homebrew/brew/archive/brew-1.0.0.tar.gz"))
-        .to eq("https://codeberg.org/Homebrew/brew.git")
-    end
-
-    it "returns the Git repository URL for a Gitea archive URL" do
-      expect(livecheck.preprocess_url("https://gitea.com/Homebrew/brew/archive/brew-1.0.0.tar.gz"))
-        .to eq("https://gitea.com/Homebrew/brew.git")
-    end
-
-    it "returns the Git repository URL for an Opendev archive URL" do
-      expect(livecheck.preprocess_url("https://opendev.org/Homebrew/brew/archive/brew-1.0.0.tar.gz"))
-        .to eq("https://opendev.org/Homebrew/brew.git")
-    end
-
-    it "returns the Git repository URL for a tildegit archive URL" do
-      expect(livecheck.preprocess_url("https://tildegit.org/Homebrew/brew/archive/brew-1.0.0.tar.gz"))
-        .to eq("https://tildegit.org/Homebrew/brew.git")
-    end
-
-    it "returns the Git repository URL for a LOL Git archive URL" do
-      expect(livecheck.preprocess_url("https://lolg.it/Homebrew/brew/archive/brew-1.0.0.tar.gz"))
-        .to eq("https://lolg.it/Homebrew/brew.git")
-    end
-
-    it "returns the Git repository URL for a sourcehut archive URL" do
-      expect(livecheck.preprocess_url("https://git.sr.ht/~Homebrew/brew/archive/1.0.0.tar.gz"))
-        .to eq("https://git.sr.ht/~Homebrew/brew")
     end
   end
 end

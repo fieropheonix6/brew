@@ -1,4 +1,4 @@
-# typed: true
+# typed: true # rubocop:todo Sorbet/StrictSigil
 # frozen_string_literal: true
 
 # Used to track formulae that cannot be installed at the same time.
@@ -7,8 +7,6 @@ FormulaConflict = Struct.new(:name, :reason)
 # Used to annotate formulae that duplicate macOS-provided software
 # or cause conflicts when linked in.
 class KegOnlyReason
-  extend T::Sig
-
   attr_reader :reason
 
   def initialize(reason, explanation)
@@ -39,6 +37,7 @@ class KegOnlyReason
     !by_macos?
   end
 
+  sig { returns(String) }
   def to_s
     return @explanation unless @explanation.empty?
 

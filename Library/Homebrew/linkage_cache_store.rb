@@ -1,7 +1,6 @@
-# typed: true
+# typed: true # rubocop:todo Sorbet/StrictSigil
 # frozen_string_literal: true
 
-require "set"
 require "cache_store"
 
 #
@@ -66,6 +65,7 @@ class LinkageCacheStore < CacheStore
   private
 
   HASH_LINKAGE_TYPES = [:keg_files_dylibs].freeze
+  private_constant :HASH_LINKAGE_TYPES
 
   # @param type [Symbol]
   # @return [Hash]

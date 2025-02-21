@@ -1,9 +1,8 @@
-# typed: false
 # frozen_string_literal: true
 
 require "extend/ENV"
 
-describe "ENV" do
+RSpec.describe "ENV" do
   shared_examples EnvActivation do
     subject(:env) { env_activation.extend(described_class) }
 
@@ -30,12 +29,12 @@ describe "ENV" do
       it "ensures the environment is restored" do
         before = subject.dup
 
-        expect {
+        expect do
           subject.with_build_environment do
             subject["foo"] = "bar"
             raise StandardError
           end
-        }.to raise_error(StandardError)
+        end.to raise_error(StandardError)
 
         expect(subject["foo"]).to be_nil
         expect(subject).to eq(before)
@@ -74,8 +73,8 @@ describe "ENV" do
         expect(subject["foo"]).to eq("1")
       end
 
-      # NOTE: this may be a wrong behavior; we should probably reject objects that
-      # do not respond to #to_str. For now this documents existing behavior.
+      # NOTE: This may be a wrong behavior; we should probably reject objects that
+      #       do not respond to `#to_str`. For now this documents existing behavior.
       it "coerces a value to a string" do
         subject.append "foo", 42
         expect(subject["foo"]).to eq("42")
@@ -130,8 +129,8 @@ describe "ENV" do
 
     describe "#compiler" do
       it "allows switching compilers" do
-        subject.public_send(:"gcc-6")
-        expect(subject.compiler).to eq("gcc-6")
+        subject.public_send(:"gcc-9")
+        expect(subject.compiler).to eq("gcc-9")
       end
     end
 
@@ -165,12 +164,6 @@ describe "ENV" do
         expect(subject["FOO"]).to eq "bar"
       end
     end
-
-    describe "#compiler_any_clang?" do
-      it "returns true for llvm_clang" do
-        expect(subject.compiler_any_clang?(:llvm_clang)).to be true
-      end
-    end
   end
 
   describe Stdenv do
@@ -186,16 +179,11 @@ describe "ENV" do
     end
 
     describe "#cxx11" do
-      it "supports gcc-5" do
-        env["HOMEBREW_CC"] = "gcc-5"
+      it "supports gcc-11" do
+        env["HOMEBREW_CC"] = "gcc-11"
         env.cxx11
         expect(env["HOMEBREW_CCCFG"]).to include("x")
-      end
-
-      example "supports gcc-6" do
-        env["HOMEBREW_CC"] = "gcc-6"
-        env.cxx11
-        expect(env["HOMEBREW_CCCFG"]).to include("x")
+        expect(env["HOMEBREW_CCCFG"]).not_to include("g")
       end
 
       it "supports clang" do

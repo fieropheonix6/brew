@@ -1,9 +1,7 @@
-# typed: false
+# typed: true # rubocop:disable Sorbet/StrictSigil
 # frozen_string_literal: true
 
 module Superenv
-  extend T::Sig
-
   class << self
     # The location of Homebrew's shims on macOS.
     def shims_path
@@ -12,7 +10,6 @@ module Superenv
 
     undef bin
 
-    # @private
     def bin
       return unless DevelopmentTools.installed?
 
@@ -27,12 +24,12 @@ module Superenv
         homebrew_extra_cmake_frameworks_paths,
         determine_cccfg
 
-  # @private
+  sig { returns(T::Array[Pathname]) }
   def homebrew_extra_pkg_config_paths
-    ["/usr/lib/pkgconfig", "#{HOMEBREW_LIBRARY}/Homebrew/os/mac/pkgconfig/#{MacOS.version}"]
+    [Pathname("/usr/lib/pkgconfig"), Pathname("#{HOMEBREW_LIBRARY}/Homebrew/os/mac/pkgconfig/#{MacOS.version}")]
   end
+  private :homebrew_extra_pkg_config_paths
 
-  # @private
   sig { returns(T::Boolean) }
   def libxml2_include_needed?
     return false if deps.any? { |d| d.name == "libxml2" }
@@ -40,6 +37,7 @@ module Superenv
 
     true
   end
+  private :libxml2_include_needed?
 
   def homebrew_extra_isystem_paths
     paths = []
@@ -68,7 +66,7 @@ module Superenv
   end
 
   def homebrew_extra_cmake_library_paths
-    ["#{self["HOMEBREW_SDKROOT"]}/System/Library/Frameworks/OpenGL.framework/Versions/Current/Libraries"]
+    [Pathname("#{self["HOMEBREW_SDKROOT"]}/System/Library/Frameworks/OpenGL.framework/Versions/Current/Libraries")]
   end
 
   def homebrew_extra_cmake_frameworks_paths
@@ -90,19 +88,29 @@ module Superenv
     sdk = formula ? MacOS.sdk_for_formula(formula) : MacOS.sdk
     is_xcode_sdk = sdk&.source == :xcode
 
-    self["HOMEBREW_SDKROOT"] = if is_xcode_sdk || MacOS.sdk_root_needed?
+    if is_xcode_sdk || MacOS.sdk_root_needed?
       Homebrew::Diagnostic.checks(:fatal_setup_build_environment_checks)
-      sdk.path
+      self["HOMEBREW_SDKROOT"] = sdk.path if sdk
     end
 
     self["HOMEBREW_DEVELOPER_DIR"] = if is_xcode_sdk
-      MacOS::Xcode.prefix
+      MacOS::Xcode.prefix.to_s
     else
       MacOS::CLT::PKG_PATH
     end
 
-    generic_setup_build_environment(formula: formula, cc: cc, build_bottle: build_bottle, bottle_arch: bottle_arch,
-                                    testing_formula: testing_formula, debug_symbols: debug_symbols)
+    # This is a workaround for the missing `m4` in Xcode CLT 15.3, which was
+    # reported in FB13679972. Apple has fixed this in Xcode CLT 16.0.
+    # See https://github.com/Homebrew/homebrew-core/issues/165388
+    if deps.none? { |d| d.name == "m4" } &&
+       MacOS.active_developer_dir == MacOS::CLT::PKG_PATH &&
+       !File.exist?("#{MacOS::CLT::PKG_PATH}/usr/bin/m4") &&
+       (gm4 = DevelopmentTools.locate("gm4").to_s).present?
+      self["M4"] = gm4
+    end
+
+    generic_setup_build_environment(formula:, cc:, build_bottle:, bottle_arch:,
+                                    testing_formula:, debug_symbols:)
 
     # Filter out symbols known not to be defined since GNU Autotools can't
     # reliably figure this out with Xcode 8 and above.
@@ -122,6 +130,12 @@ module Superenv
       ENV["ac_have_clock_syscall"] = "no"
     end
 
+    # On macOS Sonoma (at least release candidate), iconv() is generally
+    # present and working, but has a minor regression that defeats the
+    # test implemented in gettext's configure script (and used by many
+    # gettext dependents).
+    ENV["am_cv_func_iconv_works"] = "yes" if MacOS.version == "14"
+
     # The tools in /usr/bin proxy to the active developer directory.
     # This means we can use them for any combination of CLT and Xcode.
     self["HOMEBREW_PREFER_CLT_PROXIES"] = "1"
@@ -131,9 +145,27 @@ module Superenv
     # Notably, Xcode 10.2 fixes issues where ZERO_AR_DATE affected file mtimes.
     # Xcode 11.0 contains fixes for lldb reading things built with ZERO_AR_DATE.
     self["ZERO_AR_DATE"] = "1" if MacOS::Xcode.version >= "11.0" || MacOS::CLT.version >= "11.0"
+
+    # Pass `-no_fixup_chains` whenever the linker is invoked with `-undefined dynamic_lookup`.
+    # See: https://github.com/python/cpython/issues/97524
+    #      https://github.com/pybind/pybind11/pull/4301
+    no_fixup_chains
+
+    # Strip build prefixes from linker where supported, for deterministic builds.
+    append_to_cccfg "o" if OS::Mac::DevelopmentTools.ld64_version >= 512
+
+    # Pass `-ld_classic` whenever the linker is invoked with `-dead_strip_dylibs`
+    # on `ld` versions that don't properly handle that option.
+    if OS::Mac::DevelopmentTools.ld64_version >= "1015.7" && OS::Mac::DevelopmentTools.ld64_version <= "1022.1"
+      append_to_cccfg "c"
+    end
   end
 
   def no_weak_imports
     append_to_cccfg "w" if no_weak_imports_support?
+  end
+
+  def no_fixup_chains
+    append_to_cccfg "f" if no_fixup_chains_support?
   end
 end

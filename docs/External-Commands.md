@@ -1,3 +1,7 @@
+---
+last_review_date: "1970-01-01"
+---
+
 # External Commands
 
 Homebrew, like Git, supports *external commands*. This lets you create new commands that can be run like:
@@ -24,19 +28,19 @@ The command may `Kernel.exit` with a status code if it needs to; if it doesn't e
 
 ### Other executable scripts
 
-An executable script for a command named `extcmd` should be named `brew-extcmd`. The script itself can use any suitable shebang (`#!`) line, so an external script can be written in Bash, Ruby, or even Python. Unlike the ruby commands this file must not end with a language-specific suffix (`.sh`, or `.py`). This file will be run via `exec` with some Homebrew variables set as environment variables, and passed any additional command-line arguments.
+An executable script for a command named `extcmd` should be named `brew-extcmd`. The script itself can use any suitable shebang (`#!`) line, so an external script can be written in Bash, Ruby, or even Python. Unlike the Ruby commands this file must not end with a language-specific suffix (`.sh`, or `.py`). This file will be run via `exec` with some Homebrew variables set as environment variables, and passed any additional command-line arguments.
 
-| Variable               | Description                                                                                                                                                                 |
-|------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `HOMEBREW_CACHE`       | Where Homebrew caches downloaded tarballs to, by default `~/Library/Caches/Homebrew`.                                                                                       |
-| `HOMEBREW_PREFIX`      | Where Homebrew installs software. `/usr/local` by default for macOS Intel, `/opt/homebrew` for Apple Silicon and `/home/linuxbrew/.linuxbrew` for Linux.                    |
-| `HOMEBREW_CELLAR`      | The location of the Homebrew Cellar, where software is staged. This will be `HOMEBREW_PREFIX/Cellar` if that directory exists, or `HOMEBREW_REPOSITORY/Cellar` otherwise.   |
-| `HOMEBREW_LIBRARY_PATH`| The directory containing Homebrew’s own application code.                                                                                                                   |
-| `HOMEBREW_REPOSITORY`  | The Git repository directory (i.e. where Homebrew’s `.git` directory lives). Usually either the same as `HOMEBREW_PREFIX` or a `Homebrew` subdirectory.                    |
+| variable               | description |
+| ---------------------- | ----------- |
+| `HOMEBREW_CACHE`       | Where Homebrew caches downloaded tarballs to, by default `~/Library/Caches/Homebrew`. |
+| `HOMEBREW_PREFIX`      | Where Homebrew installs software. `/opt/homebrew` by default for Apple Silicon, `/usr/local` for macOS Intel and `/home/linuxbrew/.linuxbrew` for Linux. |
+| `HOMEBREW_CELLAR`      | The location of the Homebrew Cellar, where software is staged. This will be `HOMEBREW_PREFIX/Cellar` if that directory exists, or `HOMEBREW_REPOSITORY/Cellar` otherwise. |
+| `HOMEBREW_LIBRARY_PATH`| The directory containing Homebrew’s own application code. |
+| `HOMEBREW_REPOSITORY`  | The Git repository directory (i.e. where Homebrew’s `.git` directory lives). Usually either the same as `HOMEBREW_PREFIX` or a `Homebrew` subdirectory. |
 
 ## Providing `--help`
 
-All internal and external Homebrew commands can provide styled `--help` output by using Homebrew’s [argument parser](https://rubydoc.brew.sh/Homebrew/CLI/Parser.html), as seen in the [`brew services` command](https://github.com/Homebrew/homebrew-services/blob/HEAD/cmd/services.rb); or by including lines starting with `#:` (a comment then `:` character in both Bash and Ruby), as seen in the [header of `update.sh`](https://github.com/Homebrew/brew/blob/cf7def0c68903814c6b4e04a55fe8f3cb3f5605e/Library/Homebrew/cmd/update.sh#L1-L10), which is printed with `brew update --help`.
+All internal and external Homebrew commands can provide styled `--help` output by using Homebrew’s [argument parser](https://rubydoc.brew.sh/Homebrew/CLI/Parser), as seen in the [`brew services` command](https://github.com/Homebrew/homebrew-services/blob/HEAD/cmd/services.rb); or by including lines starting with `#:` (a comment then `:` character in both Bash and Ruby), as seen in the [header of `update.sh`](https://github.com/Homebrew/brew/blob/cf7def0c68903814c6b4e04a55fe8f3cb3f5605e/Library/Homebrew/cmd/update.sh#L1-L10), which is printed with `brew update --help`.
 
 ## Unofficial external commands
 
@@ -56,35 +60,37 @@ External commands can be hosted in a [tap](Taps.md) to allow users to easily ins
 
 External commands should be added to a `cmd` directory in the tap. An external command `extcmd` implemented as a Ruby command should live in `cmd/extcmd.rb` (don't forget to `chmod +x`).
 
-To easily use Homebrew's argument parser, replicate the following Ruby template for external commands (replacing all instances of `foo` with the name of the command):
+To easily use Homebrew's argument parser, replicate the Ruby template below for external commands. Your implementation must include the following:
+
+- The class name should be the command name in CamelCase (e.g. `my-cmd` should be named `MyCmd`).
+- Provide a `cmd_args` block that describes the command and its arguments.
+- Implement the `run` method, which will be invoked when the command is executed. Within the `run` method, the parsed arguments are available using `args`.
 
 ```ruby
 # frozen_string_literal: true
 
 module Homebrew
-  module_function
+  module Cmd
+    class Foo < AbstractCommand
+      cmd_args do
+        description <<~EOS
+          Do something. Place a description here.
+        EOS
+        switch "-f", "--force",
+               description: "Force doing something in the command."
+        flag   "--file=",
+               description: "Specify a file to do something with in the command."
+        comma_array "--names",
+                    description: "Add a list of names to the command."
 
-  def foo_args
-    Homebrew::CLI::Parser.new do
-      description <<~EOS
-        Do something. Place a description here.
-      EOS
-      switch "-f", "--force",
-             description: "Force doing something in the command."
-      flag   "--file=",
-             description: "Specify a file to do something with in the command."
-      comma_array "--names",
-                  description: "Add a list of names to the command."
+        named_args [:formula, :cask], min: 1
+      end
 
-      named_args [:formula, :cask], min: 1
+      def run
+        something if args.force?
+        something_else if args.file == "file.txt"
+      end
     end
-  end
-
-  def foo
-    args = foo_args.parse
-
-    something if args.force?
-    something_else if args.file == "file.txt"
   end
 end
 ```

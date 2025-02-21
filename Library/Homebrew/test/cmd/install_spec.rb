@@ -1,9 +1,9 @@
-# typed: false
 # frozen_string_literal: true
 
+require "cmd/install"
 require "cmd/shared_examples/args_parse"
 
-describe "brew install" do
+RSpec.describe Homebrew::Cmd::InstallCmd do
   it_behaves_like "parseable arguments"
 
   it "installs formulae", :integration_test do

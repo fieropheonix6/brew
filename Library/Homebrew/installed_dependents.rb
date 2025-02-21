@@ -1,14 +1,10 @@
-# typed: true
+# typed: true # rubocop:todo Sorbet/StrictSigil
 # frozen_string_literal: true
 
 require "cask_dependent"
 
 # Helper functions for installed dependents.
-#
-# @api private
 module InstalledDependents
-  extend T::Sig
-
   module_function
 
   # Given an array of kegs, this method will try to find some other kegs
@@ -54,12 +50,12 @@ module InstalledDependents
         CaskDependent.new(dependent).runtime_dependencies.map(&:to_formula)
       end
 
-      required_kegs = required.map do |f|
+      required_kegs = required.filter_map do |f|
         f_kegs = kegs_by_source[[f.name, f.tap]]
         next unless f_kegs
 
-        f_kegs.max_by(&:version)
-      end.compact
+        f_kegs.max_by(&:scheme_and_version)
+      end
 
       next if required_kegs.empty?
 

@@ -1,7 +1,6 @@
-# typed: false
 # frozen_string_literal: true
 
-describe "brew custom-external-command", :integration_test do
+RSpec.describe "brew custom-external-command", :integration_test, type: :system do
   it "is supported" do
     mktmpdir do |path|
       cmd = "custom-external-command-#{rand}"

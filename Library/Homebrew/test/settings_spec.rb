@@ -1,9 +1,8 @@
-# typed: false
 # frozen_string_literal: true
 
 require "settings"
 
-describe Homebrew::Settings do
+RSpec.describe Homebrew::Settings do
   before do
     HOMEBREW_REPOSITORY.cd do
       system "git", "init"

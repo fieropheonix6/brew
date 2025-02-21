@@ -1,9 +1,8 @@
-# typed: false
 # frozen_string_literal: true
 
 require "missing_formula"
 
-describe Homebrew::MissingFormula do
+RSpec.describe Homebrew::MissingFormula do
   describe "::reason" do
     subject { described_class.reason("gem") }
 
@@ -22,7 +21,6 @@ describe Homebrew::MissingFormula do
     it { is_expected.to disallow("pil") }
     it { is_expected.to disallow("macruby") }
     it { is_expected.to disallow("lzma") }
-    it { is_expected.to disallow("sshpass") }
     it { is_expected.to disallow("gsutil") }
     it { is_expected.to disallow("gfortran") }
     it { is_expected.to disallow("play") }
@@ -36,7 +34,7 @@ describe Homebrew::MissingFormula do
     subject { described_class.tap_migration_reason(formula) }
 
     before do
-      tap_path = Tap::TAP_DIRECTORY/"homebrew/homebrew-foo"
+      tap_path = HOMEBREW_TAP_DIRECTORY/"homebrew/homebrew-foo"
       tap_path.mkpath
       (tap_path/"tap_migrations.json").write <<~JSON
         { "migrated-formula": "homebrew/bar" }
@@ -60,9 +58,9 @@ describe Homebrew::MissingFormula do
     subject { described_class.deleted_reason(formula, silent: true) }
 
     before do
-      tap_path = Tap::TAP_DIRECTORY/"homebrew/homebrew-foo"
-      tap_path.mkpath
-      (tap_path/"deleted-formula.rb").write "placeholder"
+      tap_path = HOMEBREW_TAP_DIRECTORY/"homebrew/homebrew-foo"
+      (tap_path/"Formula").mkpath
+      (tap_path/"Formula/deleted-formula.rb").write "placeholder"
       ENV.delete "GIT_AUTHOR_DATE"
       ENV.delete "GIT_COMMITTER_DATE"
 
@@ -70,7 +68,7 @@ describe Homebrew::MissingFormula do
         system "git", "init"
         system "git", "add", "--all"
         system "git", "commit", "-m", "initial state"
-        system "git", "rm", "deleted-formula.rb"
+        system "git", "rm", "Formula/deleted-formula.rb"
         system "git", "commit", "-m", "delete formula 'deleted-formula'"
       end
     end
@@ -101,7 +99,7 @@ describe Homebrew::MissingFormula do
   end
 
   describe "::cask_reason", :cask do
-    subject { described_class.cask_reason(formula, show_info: show_info) }
+    subject { described_class.cask_reason(formula, show_info:) }
 
     context "with a formula name that is a cask and show_info: false" do
       let(:formula) { "local-caffeine" }

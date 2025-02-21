@@ -1,4 +1,3 @@
-# typed: false
 # frozen_string_literal: true
 
 require "cmd/update-report"
@@ -6,20 +5,20 @@ require "formula_versions"
 require "yaml"
 require "cmd/shared_examples/args_parse"
 
-describe "brew update-report" do
+RSpec.describe Homebrew::Cmd::UpdateReport do
   it_behaves_like "parseable arguments"
 
   describe Reporter do
-    let(:tap) { CoreTap.new }
+    let(:tap) { CoreTap.instance }
     let(:reporter_class) do
       Class.new(described_class) do
         def initialize(tap)
           @tap = tap
 
-          ENV["HOMEBREW_UPDATE_BEFORE#{tap.repo_var}"] = "12345678"
-          ENV["HOMEBREW_UPDATE_AFTER#{tap.repo_var}"] = "abcdef00"
+          ENV["HOMEBREW_UPDATE_BEFORE#{tap.repository_var_suffix}"] = "12345678"
+          ENV["HOMEBREW_UPDATE_AFTER#{tap.repository_var_suffix}"] = "abcdef00"
 
-          super(tap)
+          super
         end
       end
     end
@@ -27,8 +26,8 @@ describe "brew update-report" do
     let(:hub) { ReporterHub.new }
 
     def perform_update(fixture_name = "")
-      allow(Formulary).to receive(:factory).and_return(double(pkg_version: "1.0"))
-      allow(FormulaVersions).to receive(:new).and_return(double(formula_at_revision: "2.0"))
+      allow(Formulary).to receive(:factory).and_return(instance_double(Formula, pkg_version: "1.0"))
+      allow(FormulaVersions).to receive(:new).and_return(instance_double(FormulaVersions, formula_at_revision: "2.0"))
 
       diff = YAML.load_file("#{TEST_FIXTURE_DIR}/updater_fixture.yaml")[fixture_name]
       allow(reporter).to receive(:diff).and_return(diff || "")
@@ -39,9 +38,9 @@ describe "brew update-report" do
     specify "without revision variable" do
       ENV.delete_if { |k, _v| k.start_with? "HOMEBREW_UPDATE" }
 
-      expect {
+      expect do
         described_class.new(tap)
-      }.to raise_error(Reporter::ReporterRevisionUnsetError)
+      end.to raise_error(Reporter::ReporterRevisionUnsetError)
     end
 
     specify "without any changes" do
@@ -88,14 +87,14 @@ describe "brew update-report" do
     end
 
     context "when updating a Tap other than the core Tap" do
-      let(:tap) { Tap.new("foo", "bar") }
+      let(:tap) { Tap.fetch("foo", "bar") }
 
       before do
         (tap.path/"Formula").mkpath
       end
 
       after do
-        tap.path.parent.rmtree
+        FileUtils.rm_r(tap.path.parent)
       end
 
       specify "with restructured Tap" do

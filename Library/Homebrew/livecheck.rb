@@ -1,5 +1,8 @@
-# typed: true
+# typed: strict
 # frozen_string_literal: true
+
+require "livecheck/constants"
+require "cask/cask"
 
 # The {Livecheck} class implements the DSL methods used in a formula's, cask's
 # or resource's `livecheck` block and stores related instance variables. Most
@@ -14,69 +17,84 @@ class Livecheck
 
   # A very brief description of why the formula/cask/resource is skipped (e.g.
   # `No longer developed or maintained`).
-  # @return [String, nil]
+  sig { returns(T.nilable(String)) }
   attr_reader :skip_msg
 
+  # A block used by strategies to identify version information.
+  sig { returns(T.nilable(Proc)) }
+  attr_reader :strategy_block
+
+  # Options used by `Strategy` methods to modify `curl` behavior.
+  sig { returns(T.nilable(T::Hash[Symbol, T.untyped])) }
+  attr_reader :url_options
+
+  sig { params(package_or_resource: T.any(Cask::Cask, T.class_of(Formula), Resource)).void }
   def initialize(package_or_resource)
     @package_or_resource = package_or_resource
-    @referenced_cask_name = nil
-    @referenced_formula_name = nil
-    @regex = nil
-    @skip = false
-    @skip_msg = nil
-    @strategy = nil
-    @url = nil
+    @referenced_cask_name = T.let(nil, T.nilable(String))
+    @referenced_formula_name = T.let(nil, T.nilable(String))
+    @regex = T.let(nil, T.nilable(Regexp))
+    @skip = T.let(false, T::Boolean)
+    @skip_msg = T.let(nil, T.nilable(String))
+    @strategy = T.let(nil, T.nilable(Symbol))
+    @strategy_block = T.let(nil, T.nilable(Proc))
+    @throttle = T.let(nil, T.nilable(Integer))
+    @url = T.let(nil, T.any(NilClass, String, Symbol))
+    @url_options = T.let(nil, T.nilable(T::Hash[Symbol, T.untyped]))
   end
 
   # Sets the `@referenced_cask_name` instance variable to the provided `String`
   # or returns the `@referenced_cask_name` instance variable when no argument
   # is provided. Inherited livecheck values from the referenced cask
-  # (e.g. regex) can be overridden in the livecheck block.
-  #
-  # @param cask_name [String] name of cask to inherit livecheck info from
-  # @return [String, nil]
-  def cask(cask_name = nil)
+  # (e.g. regex) can be overridden in the `livecheck` block.
+  sig {
+    params(
+      # Name of cask to inherit livecheck info from.
+      cask_name: String,
+    ).returns(T.nilable(String))
+  }
+  def cask(cask_name = T.unsafe(nil))
     case cask_name
     when nil
       @referenced_cask_name
     when String
       @referenced_cask_name = cask_name
-    else
-      raise TypeError, "Livecheck#cask expects a String"
     end
   end
 
   # Sets the `@referenced_formula_name` instance variable to the provided
-  # `String` or returns the `@referenced_formula_name` instance variable when
-  # no argument is provided. Inherited livecheck values from the referenced
-  # formula (e.g. regex) can be overridden in the livecheck block.
-  #
-  # @param formula_name [String] name of formula to inherit livecheck info from
-  # @return [String, nil]
-  def formula(formula_name = nil)
+  # `String`/`Symbol` or returns the `@referenced_formula_name` instance
+  # variable when no argument is provided. Inherited livecheck values from the
+  # referenced formula (e.g. regex) can be overridden in the `livecheck` block.
+  sig {
+    params(
+      # Name of formula to inherit livecheck info from.
+      formula_name: T.any(String, Symbol),
+    ).returns(T.nilable(T.any(String, Symbol)))
+  }
+  def formula(formula_name = T.unsafe(nil))
     case formula_name
     when nil
       @referenced_formula_name
-    when String
+    when String, :parent
       @referenced_formula_name = formula_name
-    else
-      raise TypeError, "Livecheck#formula expects a String"
     end
   end
 
   # Sets the `@regex` instance variable to the provided `Regexp` or returns the
   # `@regex` instance variable when no argument is provided.
-  #
-  # @param pattern [Regexp] regex to use for matching versions in content
-  # @return [Regexp, nil]
-  def regex(pattern = nil)
+  sig {
+    params(
+      # Regex to use for matching versions in content.
+      pattern: Regexp,
+    ).returns(T.nilable(Regexp))
+  }
+  def regex(pattern = T.unsafe(nil))
     case pattern
     when nil
       @regex
     when Regexp
       @regex = pattern
-    else
-      raise TypeError, "Livecheck#regex expects a Regexp"
     end
   end
 
@@ -85,20 +103,20 @@ class Livecheck
   # that the formula/cask/resource should be skipped and the `skip_msg` very
   # briefly describes why it is skipped (e.g. "No longer developed or
   # maintained").
-  #
-  # @param skip_msg [String] string describing why the formula/cask is skipped
-  # @return [Boolean]
-  def skip(skip_msg = nil)
-    if skip_msg.is_a?(String)
-      @skip_msg = skip_msg
-    elsif skip_msg.present?
-      raise TypeError, "Livecheck#skip expects a String"
-    end
+  sig {
+    params(
+      # String describing why the formula/cask is skipped.
+      skip_msg: String,
+    ).returns(T::Boolean)
+  }
+  def skip(skip_msg = T.unsafe(nil))
+    @skip_msg = skip_msg if skip_msg.is_a?(String)
 
     @skip = true
   end
 
   # Should `livecheck` skip this formula/cask/resource?
+  sig { returns(T::Boolean) }
   def skip?
     @skip
   end
@@ -107,10 +125,14 @@ class Livecheck
   # the `@strategy` instance variable when no argument is provided. The strategy
   # symbols use snake case (e.g. `:page_match`) and correspond to the strategy
   # file name.
-  #
-  # @param symbol [Symbol] symbol for the desired strategy
-  # @return [Symbol, nil]
-  def strategy(symbol = nil, &block)
+  sig {
+    params(
+      # Symbol for the desired strategy.
+      symbol: Symbol,
+      block:  T.nilable(Proc),
+    ).returns(T.nilable(Symbol))
+  }
+  def strategy(symbol = T.unsafe(nil), &block)
     @strategy_block = block if block
 
     case symbol
@@ -118,45 +140,73 @@ class Livecheck
       @strategy
     when Symbol
       @strategy = symbol
-    else
-      raise TypeError, "Livecheck#strategy expects a Symbol"
     end
   end
 
-  attr_reader :strategy_block
+  # Sets the `@throttle` instance variable to the provided `Integer` or returns
+  # the `@throttle` instance variable when no argument is provided.
+  sig {
+    params(
+      # Throttle rate of version patch number to use for bumpable versions.
+      rate: Integer,
+    ).returns(T.nilable(Integer))
+  }
+  def throttle(rate = T.unsafe(nil))
+    case rate
+    when nil
+      @throttle
+    when Integer
+      @throttle = rate
+    end
+  end
 
   # Sets the `@url` instance variable to the provided argument or returns the
   # `@url` instance variable when no argument is provided. The argument can be
   # a `String` (a URL) or a supported `Symbol` corresponding to a URL in the
   # formula/cask/resource (e.g. `:stable`, `:homepage`, `:head`, `:url`).
-  # @param val [String, Symbol] URL to check for version information
-  # @return [String, nil]
-  def url(val = nil)
-    case val
+  # Any options provided to the method are passed through to `Strategy` methods
+  # (`page_headers`, `page_content`).
+  sig {
+    params(
+      # URL to check for version information.
+      url:       T.any(String, Symbol),
+      post_form: T.nilable(T::Hash[T.any(String, Symbol), String]),
+      post_json: T.nilable(T::Hash[T.any(String, Symbol), String]),
+    ).returns(T.nilable(T.any(String, Symbol)))
+  }
+  def url(url = T.unsafe(nil), post_form: nil, post_json: nil)
+    raise ArgumentError, "Only use `post_form` or `post_json`, not both" if post_form && post_json
+
+    options = { post_form:, post_json: }.compact
+    @url_options = options if options.present?
+
+    case url
     when nil
       @url
     when String, :head, :homepage, :stable, :url
-      @url = val
-    else
-      raise TypeError, "Livecheck#url expects a String or valid Symbol"
+      @url = url
+    when Symbol
+      raise ArgumentError, "#{url.inspect} is not a valid URL shorthand"
     end
   end
 
   delegate version: :@package_or_resource
   delegate arch: :@package_or_resource
   private :version, :arch
-
   # Returns a `Hash` of all instance variable values.
   # @return [Hash]
+  sig { returns(T::Hash[String, T.untyped]) }
   def to_hash
     {
-      "cask"     => @referenced_cask_name,
-      "formula"  => @referenced_formula_name,
-      "regex"    => @regex,
-      "skip"     => @skip,
-      "skip_msg" => @skip_msg,
-      "strategy" => @strategy,
-      "url"      => @url,
+      "cask"        => @referenced_cask_name,
+      "formula"     => @referenced_formula_name,
+      "regex"       => @regex,
+      "skip"        => @skip,
+      "skip_msg"    => @skip_msg,
+      "strategy"    => @strategy,
+      "throttle"    => @throttle,
+      "url"         => @url,
+      "url_options" => @url_options,
     }
   end
 end

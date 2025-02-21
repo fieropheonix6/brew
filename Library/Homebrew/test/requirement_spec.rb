@@ -1,41 +1,47 @@
-# typed: false
 # frozen_string_literal: true
 
 require "extend/ENV"
 require "requirement"
 
-describe Requirement do
+RSpec.describe Requirement do
   alias_matcher :be_a_build_requirement, :be_a_build
 
   subject(:requirement) { klass.new }
 
   let(:klass) { Class.new(described_class) }
 
+  describe "base class" do
+    it "raises an error when instantiated" do
+      expect { described_class.new }
+        .to raise_error(RuntimeError, "Requirement is declared as abstract; it cannot be instantiated")
+    end
+  end
+
   describe "#tags" do
-    subject { klass.new(tags) }
+    subject(:req) { klass.new(tags) }
 
     context "with a single tag" do
       let(:tags) { ["bar"] }
 
-      its(:tags) { are_expected.to eq(tags) }
+      it(:tags) { expect(req.tags).to eq(tags) }
     end
 
     context "with multiple tags" do
       let(:tags) { ["bar", "baz"] }
 
-      its(:tags) { are_expected.to eq(tags) }
+      it(:tags) { expect(req.tags).to eq(tags) }
     end
 
     context "with symbol tags" do
       let(:tags) { [:build] }
 
-      its(:tags) { are_expected.to eq(tags) }
+      it(:tags) { expect(req.tags).to eq(tags) }
     end
 
     context "with symbol and string tags" do
       let(:tags) { [:build, "bar"] }
 
-      its(:tags) { are_expected.to eq(tags) }
+      it(:tags) { expect(req.tags).to eq(tags) }
     end
   end
 
@@ -140,7 +146,9 @@ describe Requirement do
       end
 
       it "infers path from #satisfy result" do
-        expect(ENV).to receive(:prepend_path).with("PATH", Pathname.new("/foo/bar"))
+        without_partial_double_verification do
+          expect(ENV).to receive(:prepend_path).with("PATH", Pathname.new("/foo/bar"))
+        end
         requirement.satisfied?
         requirement.modify_build_environment
       end
@@ -164,15 +172,11 @@ describe Requirement do
     let(:klass) { self.class.const_get(const) }
 
     before do
-      self.class.const_set(const, Class.new(described_class))
+      stub_const const.to_s, Class.new(described_class)
     end
 
-    after do
-      self.class.send(:remove_const, const)
-    end
-
-    its(:name) { is_expected.to eq("foo") }
-    its(:option_names) { are_expected.to eq(["foo"]) }
+    it(:name) { expect(requirement.name).to eq("foo") }
+    it(:option_names) { expect(requirement.option_names).to eq(["foo"]) }
   end
 
   describe "#modify_build_environment" do
@@ -180,7 +184,7 @@ describe Requirement do
       let(:klass) { Class.new(described_class) }
 
       it "returns nil" do
-        expect(requirement.modify_build_environment).to be_nil
+        expect { requirement.modify_build_environment }.not_to raise_error
       end
     end
   end

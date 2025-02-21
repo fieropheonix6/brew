@@ -1,14 +1,17 @@
+---
+last_review_date: "1970-01-01"
+---
+
 # Gems, Eggs and Perl Modules
 
-On a fresh macOS installation there are three empty directories for
+On a fresh macOS installation there are two empty directories for
 add-ons available to all users:
 
 * `/Library/Ruby`
-* `/Library/Python`
 * `/Library/Perl`
 
-You need sudo to install to these like so: `sudo gem install`,
-`sudo easy_install` or `sudo cpan -i`.
+You need sudo to install to these like so: `sudo gem install`
+or `sudo cpan -i`.
 
 ## Python packages (eggs) without sudo using system Python
 
@@ -60,7 +63,7 @@ which therefore don’t need sudo.
 
 _This is only recommended if you **don't** use rbenv or RVM._
 
-Brewed Ruby installs executables to `$(brew --prefix)/opt/ruby/bin`
+Brewed Ruby installs executables to `$(brew --prefix ruby)/bin`
 without sudo. You should add this to your path. See the caveats in the
 `ruby` formula for up-to-date information.
 
@@ -91,7 +94,7 @@ Just install everything into the Homebrew prefix like this:
 echo "export GEM_HOME=\"$(brew --prefix)\"" >> ~/.bashrc
 ```
 
-### It doesn’t work! I get some “permissions” error when I try to install stuff!
+### It doesn’t work! I get some “permissions” error when I try to install stuff
 
 _Note that you may not want to do this, since Apple has decided it
 is not a good default._
@@ -129,7 +132,7 @@ subdirectories will be in your `PATH` and `PERL5LIB`.
 
 ### Avoiding sudo altogether for Perl
 
-If you don’t even want (or can’t) use sudo for bootstrapping
+If you don’t even want to (or can’t) use sudo for bootstrapping
 `local::lib`, just manually install `local::lib` in
 `~/perl5` and add the relevant path to `PERL5LIB` before the `.bashrc` eval incantation.
 

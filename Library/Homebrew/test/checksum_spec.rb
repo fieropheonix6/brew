@@ -1,9 +1,8 @@
-# typed: false
 # frozen_string_literal: true
 
 require "checksum"
 
-describe Checksum do
+RSpec.describe Checksum do
   describe "#empty?" do
     subject { described_class.new("") }
 

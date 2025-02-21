@@ -1,4 +1,4 @@
-# typed: true
+# typed: true # rubocop:todo Sorbet/StrictSigil
 # frozen_string_literal: true
 
 require "cask/artifact/abstract_artifact"
@@ -6,13 +6,9 @@ require "cask/artifact/abstract_artifact"
 module Cask
   module Artifact
     # Artifact corresponding to the `stage_only` stanza.
-    #
-    # @api private
     class StageOnly < AbstractArtifact
-      extend T::Sig
-
       def self.from_args(cask, *args, **kwargs)
-        if args != [true] || kwargs.present?
+        if (args != [true] && args != ["true"]) || kwargs.present?
           raise CaskInvalidError.new(cask.token, "'stage_only' takes only a single argument: true")
         end
 
@@ -24,7 +20,7 @@ module Cask
         [true]
       end
 
-      sig { returns(String) }
+      sig { override.returns(String) }
       def summarize
         "true"
       end

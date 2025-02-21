@@ -1,10 +1,14 @@
+---
+last_review_date: "1970-01-01"
+---
+
 # How to Create and Maintain a Tap
 
 [Taps](Taps.md) are external sources of Homebrew formulae, casks and/or external commands. They can be created by anyone to provide their own formulae, casks and/or external commands to any Homebrew user.
 
 ## Creating a tap
 
-A tap is usually a Git repository available online, but you can use anything as long as it’s a protocol that Git understands, or even just a directory with files in it. If hosted on GitHub, we recommend that the repository’s name start with `homebrew-` so the short `brew tap` command can be used. See the [manpage](Manpage.md) for more information on repository naming.
+A tap is usually a Git repository available online, but you can use anything as long as it’s a protocol that Git understands, or even just a directory with files in it. If hosted on GitHub, we recommend that the repository’s name start with `homebrew-` so the short `brew tap` command can be used. See the [`brew` manual page](Manpage.md) for more information on repository naming.
 
 The `brew tap-new` command can be used to create a new tap along with some template files.
 
@@ -18,9 +22,9 @@ If a formula in your tap has the same name as a Homebrew/homebrew-core formula t
 
 ## Installing
 
-If it’s on GitHub, users can install any of your formulae with `brew install user/repo/formula`. Homebrew will automatically add your `github.com/user/homebrew-repo` tap before installing the formula. `user/repo/formula` points to the `github.com/user/homebrew-repo/**/formula.rb` file here.
+If it’s on GitHub, users can install any of your formulae with `brew install user/repo/formula`. Homebrew will automatically add your `github.com/user/homebrew-repository` tap before installing the formula. `user/repo/formula` points to the `github.com/user/homebrew-repo/**/formula.rb` file here.
 
-To install your tap without installing any formula at the same time, users can add it with the [`brew tap` command](Taps.md). If it’s on GitHub, they can use `brew tap user/repo`, where `user` is your GitHub username and `homebrew-repo` is your repository. If it’s hosted outside of GitHub, they have to use `brew tap user/repo <URL>`, where `user` and `repo` will be used to refer to your tap and `<URL>` is your Git clone URL.
+To install your tap without installing any formula at the same time, users can add it with the [`brew tap` command](Taps.md). If it’s on GitHub, they can use `brew tap user/repository`, where `user` is your GitHub username and `homebrew-repository` is your repository. If it’s hosted outside of GitHub, they have to use `brew tap user/repo <URL>`, where `user` and `repository` will be used to refer to your tap and `<URL>` is your Git clone URL.
 
 Users can then install your formulae either with `brew install foo` if there’s no core formula with the same name, or with `brew install user/repo/foo` to avoid conflicts.
 
@@ -46,12 +50,12 @@ Unlike formulae, casks must have globally unique names to avoid clashes. This ca
 
 You can provide your tap users with custom `brew` commands by adding them in a `cmd` subdirectory. [Read more on external commands](External-Commands.md).
 
-See [homebrew/aliases](https://github.com/Homebrew/homebrew-aliases) for an example of a tap with external commands.
+See [Homebrew/test-bot](https://github.com/Homebrew/homebrew-test-bot) for an example of a tap with external commands.
 
-## Official Vendor Taps
+## Upstream taps
 
 Some upstream software providers like to package their software in their own Homebrew tap. When their software is [eligible for Homebrew/homebrew-core](Acceptable-Formulae.md) we prefer to maintain software there for ease of updates, improved discoverability and use of tools such as [formulae.brew.sh](https://formulae.brew.sh).
 
-We are not willing to remove software packaged in Homebrew/homebrew-core in favour of an upstream tap. We are not willing to instruct users in our formulae to use your formulae instead. If upstream projects have issues with how Homebrew packages your software: please file issues (or, ideally, pull requests) to address these problems.
+We are not willing to remove software packaged in Homebrew/homebrew-core in favour of an upstream tap. We are not willing to instruct users of our formulae to use an upstream tap instead. If upstream projects have issues with how Homebrew packages your software: please file issues (or, ideally, pull requests) to address these problems.
 
 There’s an increasing desire in commercial open source about “maintaining control” e.g. defining exactly what binaries are shipping to users. Not supporting users (or even software distributions) to build-from-source is antithetical to the values of open source. If you think Homebrew's perspective is annoying on this: try and see how Debian responds to requests to ship your binaries.

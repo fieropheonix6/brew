@@ -1,4 +1,4 @@
-# typed: true
+# typed: true # rubocop:todo Sorbet/StrictSigil
 # frozen_string_literal: true
 
 require "compilers"
@@ -26,7 +26,7 @@ module SystemConfig
     end
 
     def formula_linked_version(formula)
-      return "N/A" unless CoreTap.instance.installed?
+      return "N/A" if Homebrew::EnvConfig.no_install_from_api? && !CoreTap.instance.installed?
 
       Formulary.factory(formula).any_installed_version || "N/A"
     rescue FormulaUnavailableError
@@ -41,9 +41,11 @@ module SystemConfig
     end
 
     def dump_verbose_config(out = $stdout)
+      kernel = Utils.safe_popen_read("uname", "-mors").chomp
       dump_generic_verbose_config(out)
-      out.puts "Kernel: #{`uname -mors`.chomp}"
+      out.puts "Kernel: #{kernel}"
       out.puts "OS: #{OS::Linux.os_version}"
+      out.puts "WSL: #{OS::Linux.wsl_version}" if OS::Linux.wsl?
       out.puts "Host glibc: #{host_glibc_version}"
       out.puts "/usr/bin/gcc: #{host_gcc_version}"
       out.puts "/usr/bin/ruby: #{host_ruby_version}" if RUBY_PATH != HOST_RUBY_PATH

@@ -1,8 +1,7 @@
-# typed: true
+# typed: strict
 # frozen_string_literal: true
 
-require "rubocops/extend/formula"
-require "extend/string"
+require "rubocops/extend/formula_cop"
 
 module RuboCop
   module Cop
@@ -10,22 +9,23 @@ module RuboCop
       # This cop audits `patch`es in formulae.
       # TODO: Many of these could be auto-corrected.
       class Patches < FormulaCop
-        extend T::Sig
         extend AutoCorrector
 
-        def audit_formula(node, _class_node, _parent_class_node, body)
-          @full_source_content = source_buffer(node).source
+        sig { override.params(formula_nodes: FormulaNodes).void }
+        def audit_formula(formula_nodes)
+          node = formula_nodes.node
+          @full_source_content = T.let(source_buffer(node).source, T.nilable(String))
 
-          return if body.nil?
+          return if (body_node = formula_nodes.body_node).nil?
 
-          external_patches = find_all_blocks(body, :patch)
+          external_patches = find_all_blocks(body_node, :patch)
           external_patches.each do |patch_block|
             url_node = find_every_method_call_by_name(patch_block, :url).first
             url_string = parameters(url_node).first
             patch_problems(url_string)
           end
 
-          inline_patches = find_every_method_call_by_name(body, :patch)
+          inline_patches = find_every_method_call_by_name(body_node, :patch)
           inline_patches.each { |patch| inline_patch_problems(patch) }
 
           if inline_patches.empty? && patch_end?
@@ -33,7 +33,7 @@ module RuboCop
             add_offense(@offense_source_range, message: "patch is missing 'DATA'")
           end
 
-          patches_node = find_method_def(body, :patches)
+          patches_node = find_method_def(body_node, :patches)
           return if patches_node.nil?
 
           legacy_patches = find_strings(patches_node)
@@ -43,6 +43,7 @@ module RuboCop
 
         private
 
+        sig { params(patch_url_node: RuboCop::AST::Node).void }
         def patch_problems(patch_url_node)
           patch_url = string_content(patch_url_node)
 
@@ -103,6 +104,7 @@ module RuboCop
           end
         end
 
+        sig { params(patch: RuboCop::AST::Node).void }
         def inline_patch_problems(patch)
           return if !patch_data?(patch) || patch_end?
 
@@ -119,13 +121,17 @@ module RuboCop
           /^__END__$/.match?(@full_source_content)
         end
 
+        sig { params(node: RuboCop::AST::Node).void }
         def offending_patch_end_node(node)
-          @offensive_node = node
-          @source_buf = source_buffer(node)
-          @line_no = node.loc.last_line + 1
-          @column = 0
-          @length = 7 # "__END__".size
-          @offense_source_range = source_range(@source_buf, @line_no, @column, @length)
+          @offensive_node = T.let(node, T.nilable(RuboCop::AST::Node))
+          @source_buf = T.let(source_buffer(node), T.nilable(Parser::Source::Buffer))
+          @line_no = T.let(node.loc.last_line + 1, T.nilable(Integer))
+          @column = T.let(0, T.nilable(Integer))
+          @length = T.let(7, T.nilable(Integer)) # "__END__".size
+          @offense_source_range = T.let(
+            source_range(@source_buf, @line_no, @column, @length),
+            T.nilable(Parser::Source::Range),
+          )
         end
       end
     end

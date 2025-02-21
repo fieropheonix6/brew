@@ -1,3 +1,7 @@
+---
+last_review_date: "1970-01-01"
+---
+
 # License Guidelines
 
 We only accept formulae that use a [Debian Free Software Guidelines license](https://wiki.debian.org/DFSGLicenses) or are released into the public domain following [DFSG Guidelines on Public Domain software](https://wiki.debian.org/DFSGLicenses#Public_Domain) into `homebrew/core`.
@@ -26,7 +30,7 @@ license :cannot_represent
 
 ## Complex SPDX License Expressions
 
-Some formulae have multiple licenses that need to be combined in different ways. In these cases, a more complex license expression can be used. These expressions are based on the [SPDX License Expression Guidelines](https://spdx.github.io/spdx-spec/appendix-IV-SPDX-license-expressions/).
+Some formulae have multiple licenses that need to be combined in different ways. In these cases, a more complex license expression can be used. These expressions are based on the [SPDX License Expression Guidelines](https://spdx.github.io/spdx-spec/latest/annexes/spdx-license-expressions/).
 
 Add a `+` to indicate that the user can choose a later version of the same license:
 
@@ -68,8 +72,8 @@ These expressions can be nested as needed:
 license any_of: [
   "MIT",
   :public_domain,
-  all_of: ["0BSD", "Zlib", "Artistic-1.0+"],
-  "Apache-2.0" => { with: "LLVM-exception" },
+  { all_of: ["0BSD", "Zlib", "Artistic-1.0+"],
+  "Apache-2.0" => { with: "LLVM-exception" } },
 ]
 ```
 

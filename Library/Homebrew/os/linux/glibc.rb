@@ -1,14 +1,10 @@
-# typed: true
+# typed: true # rubocop:todo Sorbet/StrictSigil
 # frozen_string_literal: true
 
 module OS
   module Linux
     # Helper functions for querying `glibc` information.
-    #
-    # @api private
     module Glibc
-      extend T::Sig
-
       module_function
 
       sig { returns(Version) }

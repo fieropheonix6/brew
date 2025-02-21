@@ -1,9 +1,8 @@
-# typed: false
 # frozen_string_literal: true
 
 require "utils/autoremove"
 
-describe Utils::Autoremove do
+RSpec.describe Utils::Autoremove do
   shared_context "with formulae for dependency testing" do
     let(:formula_with_deps) do
       formula "zero" do
@@ -13,13 +12,13 @@ describe Utils::Autoremove do
       end
     end
 
-    let(:formula_is_dep1) do
+    let(:first_formula_dep) do
       formula "one" do
         url "one-1.1"
       end
     end
 
-    let(:formula_is_dep2) do
+    let(:second_formula_dep) do
       formula "two" do
         url "two-1.1"
       end
@@ -34,43 +33,56 @@ describe Utils::Autoremove do
     let(:formulae) do
       [
         formula_with_deps,
-        formula_is_dep1,
-        formula_is_dep2,
+        first_formula_dep,
+        second_formula_dep,
         formula_is_build_dep,
       ]
     end
 
-    let(:tab_from_keg) { double }
+    let(:tab_from_keg) { instance_double(Tab) }
 
     before do
-      allow(formula_with_deps).to receive(:runtime_formula_dependencies).and_return([formula_is_dep1,
-                                                                                     formula_is_dep2])
-      allow(formula_is_dep1).to receive(:runtime_formula_dependencies).and_return([formula_is_dep2])
-
-      allow(Tab).to receive(:for_keg).and_return(tab_from_keg)
+      allow(formula_with_deps).to receive_messages(
+        runtime_formula_dependencies: [first_formula_dep, second_formula_dep],
+        any_installed_keg:            instance_double(Keg, tab: tab_from_keg),
+      )
+      allow(first_formula_dep).to receive_messages(
+        runtime_formula_dependencies: [second_formula_dep],
+        any_installed_keg:            instance_double(Keg, tab: tab_from_keg),
+      )
+      allow(second_formula_dep).to receive_messages(
+        runtime_formula_dependencies: [],
+        any_installed_keg:            instance_double(Keg, tab: tab_from_keg),
+      )
+      allow(formula_is_build_dep).to receive_messages(
+        runtime_formula_dependencies: [],
+        any_installed_keg:            instance_double(Keg, tab: tab_from_keg),
+      )
     end
   end
 
-  describe "::formulae_with_no_formula_dependents" do
+  describe "::bottled_formulae_with_no_formula_dependents" do
     include_context "with formulae for dependency testing"
 
     before do
-      allow(Formulary).to receive(:factory).with("three").and_return(formula_is_build_dep)
+      allow(Formulary).to receive(:factory).with("three", { warn: false }).and_return(formula_is_build_dep)
     end
 
     context "when formulae are bottles" do
       it "filters out runtime dependencies" do
         allow(tab_from_keg).to receive(:poured_from_bottle).and_return(true)
-        expect(described_class.send(:formulae_with_no_formula_dependents, formulae))
-            .to eq([formula_with_deps, formula_is_build_dep])
+
+        expect(described_class.send(:bottled_formulae_with_no_formula_dependents, formulae))
+          .to eq([formula_with_deps, formula_is_build_dep])
       end
     end
 
     context "when formulae are built from source" do
-      it "filters out runtime and build dependencies" do
+      it "filters out formulae" do
         allow(tab_from_keg).to receive(:poured_from_bottle).and_return(false)
-        expect(described_class.send(:formulae_with_no_formula_dependents, formulae))
-            .to eq([formula_with_deps])
+
+        expect(described_class.send(:bottled_formulae_with_no_formula_dependents, formulae))
+          .to eq([])
       end
     end
   end
@@ -84,14 +96,23 @@ describe Utils::Autoremove do
 
     specify "installed on request" do
       allow(tab_from_keg).to receive(:installed_on_request).and_return(true)
+
       expect(described_class.send(:unused_formulae_with_no_formula_dependents, formulae))
-          .to eq([])
+        .to eq([])
     end
 
     specify "not installed on request" do
       allow(tab_from_keg).to receive(:installed_on_request).and_return(false)
+
       expect(described_class.send(:unused_formulae_with_no_formula_dependents, formulae))
-          .to match_array(formulae)
+        .to match_array(formulae)
+    end
+
+    specify "installed on request is null" do
+      allow(tab_from_keg).to receive(:installed_on_request).and_return(nil)
+
+      expect(described_class.send(:unused_formulae_with_no_formula_dependents, formulae))
+        .to eq([])
     end
   end
 
@@ -116,28 +137,28 @@ describe Utils::Autoremove do
       RUBY
     end
 
-    let(:cask_no_deps1) do
+    let(:first_cask_no_deps) do
       Cask::CaskLoader.load(+<<-RUBY)
         cask "green" do
         end
       RUBY
     end
 
-    let(:cask_no_deps2) do
+    let(:second_cask_no_deps) do
       Cask::CaskLoader.load(+<<-RUBY)
         cask "purple" do
         end
       RUBY
     end
 
-    let(:casks_no_deps) { [cask_no_deps1, cask_no_deps2] }
-    let(:casks_one_dep) { [cask_no_deps1, cask_no_deps2, cask_one_dep] }
-    let(:casks_multiple_deps) { [cask_no_deps1, cask_no_deps2, cask_multiple_deps] }
+    let(:casks_no_deps) { [first_cask_no_deps, second_cask_no_deps] }
+    let(:casks_one_dep) { [first_cask_no_deps, second_cask_no_deps, cask_one_dep] }
+    let(:casks_multiple_deps) { [first_cask_no_deps, second_cask_no_deps, cask_multiple_deps] }
 
     before do
       allow(Formula).to receive("[]").with("zero").and_return(formula_with_deps)
-      allow(Formula).to receive("[]").with("one").and_return(formula_is_dep1)
-      allow(Formula).to receive("[]").with("two").and_return(formula_is_dep2)
+      allow(Formula).to receive("[]").with("one").and_return(first_formula_dep)
+      allow(Formula).to receive("[]").with("two").and_return(second_formula_dep)
     end
   end
 
@@ -151,12 +172,12 @@ describe Utils::Autoremove do
 
     specify "one dependent" do
       expect(described_class.send(:formulae_with_cask_dependents, casks_one_dep))
-        .to eq([formula_is_dep2])
+        .to eq([second_formula_dep])
     end
 
     specify "multiple dependents" do
       expect(described_class.send(:formulae_with_cask_dependents, casks_multiple_deps))
-        .to match_array([formula_with_deps, formula_is_dep1, formula_is_dep2])
+        .to contain_exactly(formula_with_deps, first_formula_dep, second_formula_dep)
     end
   end
 end

@@ -1,10 +1,9 @@
-# typed: false
 # frozen_string_literal: true
 
 require "cleaner"
 require "formula"
 
-describe Cleaner do
+RSpec.describe Cleaner do
   include FileUtils
 
   describe "#clean" do
@@ -155,6 +154,52 @@ describe Cleaner do
       expect(file).not_to exist
       expect(arch_file).not_to exist
       expect(name_file).to exist
+    end
+
+    it "removes '*.dist-info/direct_url.json' files" do
+      dir = f.lib/"python3.12/site-packages/test.dist-info"
+      file = dir/"direct_url.json"
+      unrelated_file = dir/"METADATA"
+      unrelated_dir_file = f.lib/"direct_url.json"
+
+      dir.mkpath
+      touch file
+      touch unrelated_file
+      touch unrelated_dir_file
+
+      cleaner.clean
+
+      expect(file).not_to exist
+      expect(unrelated_file).to exist
+      expect(unrelated_dir_file).to exist
+    end
+
+    it "removes '*.dist-info/RECORD' files" do
+      dir = f.lib/"python3.12/site-packages/test.dist-info"
+      file = dir/"RECORD"
+      unrelated_file = dir/"METADATA"
+      unrelated_dir_file = f.lib/"RECORD"
+
+      dir.mkpath
+      touch file
+      touch unrelated_file
+      touch unrelated_dir_file
+
+      cleaner.clean
+
+      expect(file).not_to exist
+      expect(unrelated_file).to exist
+      expect(unrelated_dir_file).to exist
+    end
+
+    it "modifies '*.dist-info/INSTALLER' files" do
+      file = f.lib/"python3.12/site-packages/test.dist-info/INSTALLER"
+      file.dirname.mkpath
+      file.write "pip\n"
+
+      cleaner.clean
+
+      expect(file.read).to eq "brew\n"
     end
   end
 

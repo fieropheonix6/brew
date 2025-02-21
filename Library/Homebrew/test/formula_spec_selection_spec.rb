@@ -1,9 +1,8 @@
-# typed: false
 # frozen_string_literal: true
 
 require "formula"
 
-describe Formula do
+RSpec.describe Formula do
   describe "::new" do
     it "selects stable by default" do
       f = formula do

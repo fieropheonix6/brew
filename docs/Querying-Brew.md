@@ -1,3 +1,7 @@
+---
+last_review_date: "2025-02-08"
+---
+
 # Querying `brew`
 
 _In this document we will be using [jq](https://stedolan.github.io/jq/) to parse JSON, available from Homebrew using `brew install jq`._
@@ -31,12 +35,6 @@ brew info --json=v1 tig | jq .
 ### Installed formulae
 
 To show full JSON information about all installed formulae:
-
-```sh
-brew info --json=v1 --all | jq "map(select(.installed != []))"
-```
-
-You'll note that processing all formulae can be slow; it's quicker to let `brew` do this:
 
 ```sh
 brew info --json=v1 --installed

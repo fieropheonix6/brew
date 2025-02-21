@@ -1,4 +1,4 @@
-# typed: false
+# typed: true # rubocop:todo Sorbet/StrictSigil
 # frozen_string_literal: true
 
 class Keg
@@ -12,12 +12,10 @@ class Keg
   NULL_BYTE_STRING = "\\x00"
 
   class Relocation
-    extend T::Sig
-
-    RELOCATABLE_PATH_REGEX_PREFIX = /(?:(?<=-F|-I|-L|-isystem)|(?<![a-zA-Z0-9]))/.freeze
+    RELOCATABLE_PATH_REGEX_PREFIX = /(?:(?<=-F|-I|-L|-isystem)|(?<![a-zA-Z0-9]))/
 
     def initialize
-      @replacement_map = {}
+      @replacement_map = T.let({}, T::Hash[Symbol, [T.any(String, Regexp), String]])
     end
 
     def freeze
@@ -31,12 +29,12 @@ class Keg
       @replacement_map[key] = [old_value, new_value]
     end
 
-    sig { params(key: Symbol).returns(T::Array[T.any(String, Regexp)]) }
+    sig { params(key: Symbol).returns([T.any(String, Regexp), String]) }
     def replacement_pair_for(key)
       @replacement_map.fetch(key)
     end
 
-    sig { params(text: String).void }
+    sig { params(text: String).returns(T::Boolean) }
     def replace_text(text)
       replacements = @replacement_map.values.to_h
 
@@ -44,12 +42,12 @@ class Keg
         key.is_a?(String) ? key.length : 999
       end.reverse
 
-      any_changed = false
+      any_changed = T.let(nil, T.nilable(String))
       sorted_keys.each do |key|
-        changed = text.gsub!(key, replacements[key])
+        changed = text.gsub!(key, replacements.fetch(key))
         any_changed ||= changed
       end
-      any_changed
+      !any_changed.nil?
     end
 
     sig { params(path: T.any(String, Regexp)).returns(Regexp) }
@@ -85,7 +83,7 @@ class Keg
     []
   end
 
-  JAVA_REGEX = %r{#{HOMEBREW_PREFIX}/opt/openjdk(@\d+(\.\d+)*)?/libexec(/openjdk\.jdk/Contents/Home)?}.freeze
+  JAVA_REGEX = %r{#{HOMEBREW_PREFIX}/opt/openjdk(@\d+(\.\d+)*)?/libexec(/openjdk\.jdk/Contents/Home)?}
 
   def prepare_relocation_to_placeholders
     relocation = Relocation.new
@@ -98,7 +96,7 @@ class Keg
     end
     relocation.add_replacement_pair(:library, HOMEBREW_LIBRARY.to_s, LIBRARY_PLACEHOLDER, path: true)
     relocation.add_replacement_pair(:perl,
-                                    %r{\A#!(?:/usr/bin/perl\d\.\d+|#{HOMEBREW_PREFIX}/opt/perl/bin/perl)( |$)}o,
+                                    %r{\A#![ \t]*(?:/usr/bin/perl\d\.\d+|#{HOMEBREW_PREFIX}/opt/perl/bin/perl)( |$)}o,
                                     "#!#{PERL_PLACEHOLDER}\\1")
     relocation.add_replacement_pair(:java, JAVA_REGEX, JAVA_PLACEHOLDER)
 
@@ -130,7 +128,7 @@ class Keg
   def replace_placeholders_with_locations(files, skip_linkage: false)
     relocation = prepare_relocation_to_locations.freeze
     relocate_dynamic_linkage(relocation) unless skip_linkage
-    replace_text_in_files(relocation, files: files)
+    replace_text_in_files(relocation, files:)
   end
 
   def openjdk_dep_name_if_applicable
@@ -144,8 +142,8 @@ class Keg
   def replace_text_in_files(relocation, files: nil)
     files ||= text_files | libtool_files
 
-    changed_files = []
-    files.map(&path.method(:join)).group_by { |f| f.stat.ino }.each_value do |first, *rest|
+    changed_files = T.let([], Array)
+    files.map { path.join(_1) }.group_by { |f| f.stat.ino }.each_value do |first, *rest|
       s = first.open("rb", &:read)
 
       next unless relocation.replace_text(s)
@@ -179,11 +177,11 @@ class Keg
         binary = File.binread file
         odebug "Replacing build prefix in: #{file}"
         binary_strings = binary.split(/#{NULL_BYTE}/o, -1)
-        match_indices = binary_strings.each_index.select { |i| binary_strings[i].include?(old_prefix) }
+        match_indices = binary_strings.each_index.select { |i| binary_strings.fetch(i).include?(old_prefix) }
 
         # Only perform substitution on strings which match prefix regex.
         match_indices.each do |i|
-          s = binary_strings[i]
+          s = binary_strings.fetch(i)
           binary_strings[i] = s.gsub(old_prefix, new_prefix)
                                .ljust(s.size, NULL_BYTE)
         end
@@ -212,7 +210,6 @@ class Keg
     # for GNU grep; overridden for BSD grep on OS X
     "-lr"
   end
-  alias generic_recursive_fgrep_args recursive_fgrep_args
 
   def egrep_args
     grep_bin = "grep"
@@ -273,6 +270,8 @@ class Keg
         next true if pn.directory?
         next false if pn.basename.to_s == "orig-prefix.txt" # for python virtualenvs
         next true if pn == self/".brew/#{name}.rb"
+
+        require "metafiles"
         next true if Metafiles::EXTENSIONS.include?(pn.extname)
 
         if pn.text_executable?
@@ -330,7 +329,7 @@ class Keg
     Utils.popen_read("strings", "-t", "x", "-", file.to_s) do |io|
       until io.eof?
         str = io.readline.chomp
-        next if ignores.any? { |i| i =~ str }
+        next if ignores.any? { |i| str.match?(i) }
         next unless str.match? path_regex
 
         offset, match = str.split(" ", 2)

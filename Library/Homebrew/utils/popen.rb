@@ -1,4 +1,4 @@
-# typed: false
+# typed: true # rubocop:todo Sorbet/StrictSigil
 # frozen_string_literal: true
 
 module Utils
@@ -50,14 +50,14 @@ module Utils
 
         yield pipe
       else
-        options[:err] ||= "/dev/null" unless ENV["HOMEBREW_STDERR"]
+        options[:err] ||= File::NULL unless ENV["HOMEBREW_STDERR"]
         begin
           exec(*args, options)
         rescue Errno::ENOENT
-          $stderr.puts "brew: command not found: #{args[0]}" unless options[:err] == :close
+          $stderr.puts "brew: command not found: #{args[0]}" if options[:err] != :close
           exit! 127
         rescue SystemCallError
-          $stderr.puts "brew: exec failed: #{args[0]}" unless options[:err] == :close
+          $stderr.puts "brew: exec failed: #{args[0]}" if options[:err] != :close
           exit! 1
         end
       end

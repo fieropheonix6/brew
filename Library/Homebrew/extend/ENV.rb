@@ -8,8 +8,6 @@ require "extend/ENV/std"
 require "extend/ENV/super"
 
 module Kernel
-  extend T::Sig
-
   sig { params(env: T.nilable(String)).returns(T::Boolean) }
   def superenv?(env)
     return false if env == "std"
@@ -19,9 +17,17 @@ module Kernel
   private :superenv?
 end
 
-module EnvActivation
-  extend T::Sig
+# <!-- vale off -->
+# @!parse
+#   # `ENV` is not actually a class, but this makes YARD happy
+#   # @see https://rubydoc.info/stdlib/core/ENV
+#   #   <code>ENV</code> core documentation
+#   # @see Superenv
+#   # @see Stdenv
+#   class ENV; end
+# <!-- vale on -->
 
+module EnvActivation
   sig { params(env: T.nilable(String)).void }
   def activate_extensions!(env: nil)
     if superenv?(env)
@@ -44,10 +50,10 @@ module EnvActivation
   def with_build_environment(env: nil, cc: nil, build_bottle: false, bottle_arch: nil, debug_symbols: false, &_block)
     old_env = to_hash.dup
     tmp_env = to_hash.dup.extend(EnvActivation)
-    T.cast(tmp_env, EnvActivation).activate_extensions!(env: env)
+    T.cast(tmp_env, EnvActivation).activate_extensions!(env:)
     T.cast(tmp_env, T.any(Superenv, Stdenv))
-     .setup_build_environment(cc: cc, build_bottle: build_bottle, bottle_arch: bottle_arch,
-                              debug_symbols: debug_symbols)
+     .setup_build_environment(cc:, build_bottle:, bottle_arch:,
+                              debug_symbols:)
     replace(tmp_env)
 
     begin
